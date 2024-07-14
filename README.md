@@ -40,7 +40,11 @@ MAKEFLAGS="-j8" pip install .
 ## Run example
 
 ### Example 1: Quantized (200K)
-```python -u simple_benchmark.py pcrender --dataset_root ./example/THuman-256 --scale_factor 256 --fov 45 --voxelized --id_list 0519```
+```python simple_benchmark.py pcrender --dataset_root ./example/THuman-256 --scale_factor 256 --fov 45 --voxelized --id_list 0519```
 
 ### Example 2: Non-quantized (800K)
-```python -u simple_benchmark.py pcrender --dataset_root ./example/THuman-800K --scale_factor 448 --fov 45 --voxelized --id_list 0519```
+```python simple_benchmark.py pcrender --dataset_root ./example/THuman-800K --scale_factor 448 --fov 45 --id_list 0519```
+
+## Test with more data samples with a mesh dataset
+
+We provide as script ```sample_point_cloud_from_mesh.py``` that samples point clouds from meshes for testing. Please refer to the help message by ```python sample_point_cloud_from_mesh.py -h``` for usage.

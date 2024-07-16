@@ -1,0 +1,224 @@
+dataset_info:
+  load_pcd_with_mesh : True
+  batch_size: 4
+  dataset_name: thuman-debug
+  dataset_rng_seed: 1
+  dataset_root_dir: ./dataset/THuman
+
+  output_cam_mode: random
+  fov: 60.0
+  width_px: 50
+  height_px: 50
+  k: 40
+  local_max_angle: 3.0
+  max_angle: 180
+  max_k_ratio: 1.2
+  max_num_mesh: 2
+  max_r: 2.5
+  max_subsample: 1
+  max_translate_ratio: 2.0
+  min_k_ratio: 0.2
+  min_num_mesh: 1
+  min_r: 1.7
+  min_subsample: 1
+  n_imgs: 30
+  n_target_imgs: 4
+  n_test_target_imgs: 4
+  num_threads: 6
+  pcd_subsample: 2
+  radius_scale: 2.0
+  rand_r: 0.5
+  ray_perturbation_angle: 3
+  render_method: ray_cast
+  target_height_px: 512
+  target_width_px: 512
+
+  texture_crop_method: 20-200
+  texture_filenames: null
+  texture_mode: ori
+  total: 600
+  total_combined: null
+  use_bucket_sampler: false
+
+
+  # checkpoint 2: data preprocessing
+  random_rescale: true # to support different sparsity, usually turned on.
+  rescale_input_pts: false # should be turned ON for pure uniform and rgbd, 
+                          # OFF for voxelized and mixed
+  # [!] Even if rescale_input_pts is false, the following two parameters
+  # still need to be set to reasonable values to calculate absolute geom
+  # features.
+  rescale_input_pts_offset: 512 # decide how points in ply are translated
+  rescale_input_pts_scale: 256 # and how they are scaled
+  voxelized: true # should be turned ON for pure voxelized,
+                   # OFF for uniform and rgbd
+  random_voxelization: 0. # randomly voxelize even uniform pcd
+  num_pcd: 1 # for mixed only
+  sample_mode: uniform # select from uniform and rgbd
+
+  # for rgbd only
+  num_pcd_points: 100000
+  max_rnd_num_points: 2000000
+  min_rnd_num_points: 800000
+  perturb_camera_origin_rate: 0.05
+
+model_info:
+  dim_feature: 8
+  dim_input_layers:
+  - 32
+  - 64
+  dim_mlp: 64
+  direction_param: norm_vec
+  dropout: 0.1
+  estimate_image_rendering_weights: true
+  estimate_surface_normal_weights: false
+  learn_dist: false
+  nonlinearity: silu
+  num_heads: 4
+  num_layers: 4
+  positional_encoding_include_input: true
+  positional_encoding_log_sampling: true
+  positional_encoding_num_functions: 0
+  use_dist_as_input: false
+  use_dps_as_input: false
+  use_dpsuv_as_input: true
+  use_feature_indicator: true
+  use_pr: true
+  use_rgb_as_input: false
+  use_rgb_indicator: false
+  use_vdir_as_input: true
+  use_zdir_as_input: true
+  pts_ckpt_path : ./pointersect/checkpoint/epoch700.pth
+  use_pixel_shader: false
+
+pcml_info:
+  geo_dim_feature: 8
+  color_dim_feature: 32
+  geo_encoder_channels: 1 64 256 512 256 8
+  # clr_encoder_channels : 3 128 256 256 256 32
+  
+  #clr_encoder_channels : 3 256 512 1024 512 32
+  # clr_encoder_channels : 9 32 128 256 512 256
+  clr_encoder_channels : 6 32 64 128 256 128
+  encoder_channels : 1 64 256 512 256 32
+  
+  mlp_fitting_str : 256 128 64
+  # mlp_fitting_str : 512 256 128
+
+  # checkpoint 3: output configuration
+  use_rotation: true
+  use_scale: true
+  use_offset: true
+  use_dc_offset: false
+  use_opacity: false
+  model_type: unet
+
+  # checkpoint 4: loading pretrained model?
+  load_pcml_ckpt : 0
+  load_color_ckpt : 0
+  upsample_ratio : 8
+  neighbor_k : 5
+  threshold_K: 27
+  scale_factor : 256
+  enable_opacity : true
+
+  load_pcgc_ckpt : False
+  train_pcgc: False
+  pcgc_ckpt_path : ./add_models/pcgc/ckpts/r6_0.3bpp.pth
+  white_back: False
+  sampling_strategy: v2
+  randomize_background: True
+  coding_level: 1
+  entropy_model: hyperprior
+  hyper_entropy_model: gaussian
+  qscale: 32
+  hyper_qscale: 32
+  sh_deg: 1
+  sh_feat_deg: 0
+  hyper_level: 1
+
+  # checkpoint 5: surface normal handling
+  est_normal: true # should be on if normal is wanted
+  normalize_normal: false # usually off
+  normalize_camera_normal: false # usually off
+  normalize_gt_normal: false # usually off
+  normalize_point_normal: false
+
+optim_info:
+  #optimizer
+  train_pcgc: 1
+  train_mlp: 1
+  load_optimizer : False # when just for continue
+  train_pts: 0
+
+  #loss type
+  use_color : 0
+  use_upsample_loss : 1
+  use_pts: 0
+  color_gt_neighbor : 1
+  
+  #loss weight
+  focal_loss_alpha: 0.5
+  focal_loss_gamma: 2.0
+  learn_ray_rgb: false
+  learning_rate: 0.0001
+
+  loss_rgb_type: l1
+  weight_cd : 0.0
+  weight_arap : -30
+  weight_color : 1.0
+
+  weight_lamda: 0.0005
+  loss_weight_t: 0.01
+  loss_weight_hit: 0.01
+  #loss_weight_plane_normal: 1.0
+  loss_weight_rgb: 0.1
+  pts_loss_weight : 1
+  loss_weight_dc: 1.0
+  # checkpoint 6: loss weights
+  loss_weight_normal: 10.0
+  loss_weight_normal_l1: 0.0
+  loss_weight_normal_l2: 1.0
+  loss_weight_normal_reg: 0.0
+  loss_weight_lpips: 0.0
+  loss_weight_ssim: 0.0
+  loss_weight_point_normal: 0.0
+
+  clip : 1.0
+  lr_factor: 0.1
+  max_grad_val: 1.0
+  num_warmup_steps: 4000
+  optim_method: adam_tf
+  pcd_noise_std: 0.0
+  use_amp: false
+  random_multiscale: false
+  color_augmentation: false
+  augment_scale: 0.4
+
+process_info:
+  ddp_type: ddp
+  exclude_dirs:
+  - artifacts
+  - datasets
+  - checkpoints
+  exp_tag: train
+  #exp_tag : debug
+  exp_tag_first: true
+  find_unused_parameters: false
+  log_every_num_test_batch: 1
+  log_every_num_train_batch: 1
+  log_every_num_valid_batch: 1
+  max_test_epoch_batches: 20
+  max_train_epoch_batches: 600
+  max_valid_epoch_batches: 5
+  # checkpoint 7: saving directory
+  output_dir: ./add_models/7-15-1/
+  save_every_num_epoch: 1
+  test_every_num_epoch: 1
+  use_torchrun: true
+  validate_every_num_epoch: 1
+  visualize_every_num_test_batch: 5
+  visualize_every_num_train_batch: 200
+  visualize_every_num_valid_batch: 10
+  statistics_flag : True
+  save_pic_every_batch: 50

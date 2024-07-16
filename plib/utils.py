@@ -10,13 +10,9 @@ from plib import rigid_motion, render
 import matplotlib.pyplot as plt
 import math
 from timeit import default_timer as timer
-from pointersect.pr import pr_utils
-from pygltflib.utils import glb2gltf
-from pygltflib import GLTF2, BufferFormat
-from pygltflib.utils import ImageFormat
 import json
 import os
-from cdslib.core.utils.print_and_save import imagesc
+from pointersect_utils.print_and_save import imagesc
 
 
 def to_tensor(
@@ -668,121 +664,7 @@ def get_k_neighbor_within_ray(
     Returns:
 
     """
-
-    device = points.device
-    batch_size, n_rays, _ = ray_origins.shape
-
-    # no_hit_token = torch.ones(batch_size, 1, 3, device = device) * torch.inf
-
-    stime = timer()
-
-    if cached_info is None:
-        gidx2pidx_bank = None
-        gidx_start_idx = None
-        refresh_cache = True
-    else:
-        gidx2pidx_bank = cached_info.get('gidx2pidx_bank', None)
-        gidx_start_idx = cached_info.get('gidx_start_idx', None)
-        refresh_cache = False
-
-    with torch.no_grad():
-        if t_init is not None:
-            k = k * 2  # select 2k first
-
-        out_dict = pr_utils.find_k_neighbor_points_of_rays(
-            points=points.contiguous(),
-            k=k,
-            ray_origins=ray_origins.contiguous(),
-            ray_directions=ray_directions.contiguous(),
-            ray_radius=ray_radius,
-            grid_size=grid_size,
-            grid_center=grid_center,
-            grid_width=grid_width,
-            gidx2pidx_bank=gidx2pidx_bank,
-            gidx_start_idx=gidx_start_idx,
-            refresh_cache=refresh_cache,
-            valid_mask=valid_mask,
-        )
-        all_idxs = out_dict['ray2pidx_heap']  # (b, m, k)
-        neighbor_num = out_dict['ray_neighbor_num']  # (b, m)
-        # ray2dist_heap = out_dict['ray2dist_heap']  # (b, m, k)  we not only need dist, we also need t
-        gidx2pidx_bank = out_dict['gidx2pidx_bank']  # (b, n)
-        gidx_start_idx = out_dict['gidx_start_idx']  # (b, max_n_cell+1)
-        cached_info = dict(
-            gidx2pidx_bank=gidx2pidx_bank,
-            gidx_start_idx=gidx_start_idx,
-        )
-
-        # construct invalid mask
-        neighbor_idx = torch.arange(
-            k,
-            device=neighbor_num.device,
-        ).unsqueeze(0).expand(batch_size, n_rays, k)  # (b, m, k)
-        invalid_mask = neighbor_idx >= neighbor_num.unsqueeze(-1)  # (b, m, k)
-
-        # we assume index 0 is a point at inf
-        all_idxs = all_idxs.masked_fill(invalid_mask, 0)  # (b, m, k)
-
-        neighbor_points = torch.gather(
-            input=points,  # (b, n, 3)
-            dim=-2,
-            index=all_idxs.reshape(batch_size, n_rays * k, 1).expand(-1, -1, 3)  # (b, m*k, 3)
-        )  # (b, m*k, 3)
-
-        dist_dict = compute_point_ray_distance(
-            points=neighbor_points.reshape(batch_size * n_rays, k, 3),  # ( b*m, k, 3)
-            ray_origins=ray_origins.reshape(-1, 1, 3),  # ( b*m, 1, 3)
-            ray_directions=ray_directions.reshape(-1, 1, 3),  # ( b*m, 1, 3)
-        )
-
-        all_dists = dist_dict['dists'].squeeze(-2).reshape(batch_size, n_rays, k)  # (b, m, k)
-        all_ts = dist_dict['ts'].squeeze(-2).reshape(batch_size, n_rays, k)  # (b, m, k)
-
-        # set invalid neighbor points (point at inf) to have negative t and dist=inf
-        all_dists = all_dists.masked_fill(invalid_mask, 1e12)
-        all_ts = all_ts.masked_fill(invalid_mask, t_min - 1)  # will be ignored in rectify
-
-        if t_init is not None:
-            # select k points closer to t_init from the 2k points
-            k = k // 2
-            assert k > 0
-            sorted_point_dist = torch.square(all_ts - t_init) + torch.square(all_dists)
-            _, sorted_ts_idxs = torch.sort(sorted_point_dist, dim=-1)
-            sorted_ts_idxs = sorted_ts_idxs[..., :k].clone()
-
-            all_dists = torch.gather(
-                input=all_dists,  # (*, m, 2*k)
-                dim=-1,
-                index=sorted_ts_idxs  # (*, m, k)
-            )
-
-            all_idxs = torch.gather(
-                input=all_idxs,  # (*, m, 2*k)
-                dim=-1,
-                index=sorted_ts_idxs  # (*, m, k)
-            )
-
-            all_ts = torch.gather(
-                input=all_ts,  # (*, m, 2*k)
-                dim=-1,
-                index=sorted_ts_idxs  # (*, m, k)
-            )
-
-    invalid_mask = torch.logical_or(all_ts < t_min, all_ts > t_max)  # (*, m, n)
-    # notes: two kinds of invalid points:
-    # (1) the background point, the position itself is now set to 1e12, see render.rasterize
-    # (2) points lies in the opposite direction of the ray
-    all_dists[invalid_mask] = torch.inf
-
-    # note that all of these are not really "sorted"
-    # the name are just to match the usage of get_k_neighbor_points
-    return dict(
-        sorted_dists=all_dists,  # (*, m, k)
-        sorted_idxs=all_idxs,  # (*, m, k)
-        sorted_ts=all_ts,  # (*, m, k) length on ray (can be negative)
-        neighbor_num=neighbor_num,  # (*, m) number of neighbors of each ray
-        cached_info=cached_info,
-    )
+    raise NotImplementedError("This function, originally provided with Pointersect, is deprecated.")
 
 
 def get_k_neighbor_points(
@@ -2653,21 +2535,7 @@ def clean_up_glb_write_gltf(
 
     # convert glb to gltf
     if ext == '.glb' and not os.path.exists(filename_gltf):
-        glb2gltf(filename_glb)
-
-        # glb = GLTF2().load(filename_glb)
-        # root_dir = os.path.dirname(filename_glb)
-        # texture_dirname = os.path.splitext(filename_glb)[0]
-        # os.makedirs(texture_dirname, exist_ok=True)
-        #
-        # for image_index, image in enumerate(glb.images):
-        #     folder = os.path.join(texture_dirname, f'{image_index}')
-        #     os.makedirs(folder, exist_ok=True)
-        #     glb.export_image_to_file(image_index, root_dir, override=True)
-        #     # image.uri = os.path.join(folder, f'{image_index}.png')
-        #     image.uri = os.path.join(root_dir, f'{image_index}.jpg')
-        #
-        # glb.save_json(filename_gltf)
+        raise NotImplementedError('glb to gltf conversion is not implemented.')
 
     assert os.path.exists(filename_gltf)
 

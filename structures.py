@@ -10,7 +10,7 @@ import os
 import imageio
 import torch
 import typing as T
-from plib import render, rigid_motion, mesh_utils
+from plib import render, rigid_motion, mesh_utils, utils
 import open3d as o3d
 import numpy as np
 import math
@@ -4166,7 +4166,31 @@ class CameraTrajectory:
         assert self.n_imgs is not None
 
     def _set_random(self):
-        raise NotImplementedError('Random camera is removed for simplicity.')
+        assert 'max_angle' in self.params
+        assert 'min_r' in self.params
+        assert 'max_r' in self.params
+
+        self.cam_poses: T.List[T.List[np.ndarray]] = [
+            rigid_motion.generate_random_camera_poses(
+                n=self.n_imgs,
+                max_angle=self.params.get('max_angle'),
+                min_r=self.params.get('min_r'),
+                max_r=self.params.get('max_r'),
+                center_direction_w=self.params.get('center_direction_w', None),
+                local_max_angle=self.params.get('local_max_angle', 0),
+                rand_r=self.params.get('rand_r', 0),
+                origin_w=self.params.get('origin_w', None),
+                rng=self.rng,
+                method=self.params.get('method', 'random'),
+                dtype=self.np_dtype,
+            )
+            for _ in range(self.total)
+        ]  # list of list of H_c2w
+        self.cam_poses = utils.to_dtype(
+            utils.to_tensor(self.cam_poses),
+            dtype=self.torch_dtype,
+        )
+
 
     def _set_circle(self):
 

@@ -48,3 +48,20 @@ MAKEFLAGS="-j8" pip install .
 ## Test with more data samples with a mesh dataset
 
 We provide as script ```sample_point_cloud_from_mesh.py``` that samples point clouds from meshes for testing. Please refer to the help message by ```python sample_point_cloud_from_mesh.py -h``` for usage.
+
+## Training (*Experimental*)
+
+**Note**: the current version of the training code, although should just work, has not gone through thorough testing and thus is in an experimental stage. Future updates should fix known issues (e.g. high memory usage and low GPU unitily due to heavy CPU data processing). If you have any issues with the code, please feel free to email the author.
+
+**Note**: The training environment is largely based on the code of Pointersect (https://github.com/apple/ml-pointersect), but I clean up the code a little bit to alleviate the burden of finding suitable dependency environment to run the code. Future version will add a proper disclaimer and license.
+
+### Train with THuman 2.0 meshes
+
+#### 1. Prepare the data using ```sample_point_cloud_from_mesh.py```
+
+Please refer to the help message of this script.
+
+#### 2. Train
+```python train.py --config_filename config/base.yaml```
+
+
